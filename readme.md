@@ -66,7 +66,7 @@ Build a docker image.
 ## Run with Docker
 Obtain the docker image and use the following command to run container.
 
-    `docker run -p 127.0.0.1:8000:8000/tcp --device=/dev/ttyACM0 -t led_oxide_wip_0.1 &`
+  `docker run -p 127.0.0.1:8000:8000/tcp --device=/dev/ttyACM0 -t led_oxide_wip_0.1 & `
 
 * LED Oxide default port is 8000 so we have to export the container port to the
 host with:
