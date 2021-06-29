@@ -1,0 +1,37 @@
+#    led_oxide is an http API interface to the LedStripController Firmware.
+#
+#    Copyright (C) 2021  Thomas G. Kenny Jr
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
+[package]
+name = "led_oxide"
+version = "0.1.0"
+authors = ["Thomas G. Kenny Jr <tom8oe@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rocket = "0.4.10"
+serialport = "4.0.1"
+crc16 = "*"
+serde = { version = "1.0", features = ["derive"] }
+
+
+[dependencies.rocket_contrib]
+version = "0.4.10"
+default-features = false
+features = ["serve", "json"]

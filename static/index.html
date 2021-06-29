@@ -1,0 +1,109 @@
+<html>
+
+<head>
+  <title>Welcome To LED Oxide</title>
+
+  <script>
+
+    window.addEventListener( "load", function () {
+
+    function sendData(formElement, url) {
+      const XHR = new XMLHttpRequest();
+
+      // Bind the FormData object and the form element
+      const FD = new FormData( formElement );
+
+      // Define what happens on successful data submission
+      XHR.addEventListener( "load", function(event) {
+        //alert( event.target.responsetext );
+      } );
+
+      // Define what happens in case of error
+      XHR.addEventListener( "error", function( event ) {
+        alert( 'Oops! Something went wrong.' );
+      } );
+
+      // Set up our request
+      XHR.open( "POST", url );
+
+      // The data sent is what the user provided in the form
+      XHR.send( FD );
+
+    }
+
+    // Access the form elements
+    const formBrightness = document.getElementById( "formBrightness" );
+    const formEffect = document.getElementById( "formEffect" );
+    const formColor = document.getElementById( "formColor" );
+
+
+    // Takeover submit events
+    formBrightness.addEventListener( "submit", function ( event ) {
+      event.preventDefault();
+
+      sendData(formBrightness, "/brightness");
+    } );
+
+    formEffect.addEventListener( "submit", function ( event ) {
+      event.preventDefault();
+
+      sendData(formEffect, "/effect");
+    } );
+
+    formColor.addEventListener( "submit", function ( event ) {
+      event.preventDefault();
+
+      sendData(formColor, "/color");
+
+    } );
+
+} );
+
+  </script>
+
+</head>
+
+<body>
+
+<br/>
+
+<h1>Old School Form Submit</h1>
+<p>Works but sends you to a new page with response.</P>
+
+<form id="formBrightness_nojs" action="/brightness" method="post">
+  <input name="brightness_percent" type="number" min=0 max=100>
+  <button type="submit">Set Brightness</button>
+</form>
+
+<form id="formEffect_nojs" action="/effect" method="post">
+  <input name="effect_id" type="number" min=0 max=10>
+  <button>Set Effect</button>
+</form>
+
+<form id="formColor_nojs" action="/color" method="post">
+  <input name="color" type="color">
+  <button>Set Color</button>
+</form>
+
+<br/><hr/><br/><br/>
+
+<h1>JavaScript Submit Forms</h1>
+<p>Do not function yet as our rust implementation does not parse "multipart/form-data"</p>
+
+<form id="formBrightness">
+  <input name="brightness_percent" type="number" min=0 max=100>
+  <button>Set Brightness</button>
+</form>
+
+<form id="formEffect">
+  <input name="effect_id" type="number" min=0 max=10>
+  <button>Set Effect</button>
+</form>
+
+<form id="formColor">
+  <input name="color" type="color">
+  <button>Set Color</button>
+</form>
+
+</body>
+</html>
