@@ -1,63 +1,89 @@
+
 <html>
+
+<meta charset="UTF-8">
 
 <head>
   <title>Welcome To LED Oxide</title>
 
+  <link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet'>
+  <link href='https://fonts.googleapis.com/css?family=Tourney' rel='stylesheet'>
+  <link rel="stylesheet" href="style.css">
+
   <script>
 
-    window.addEventListener( "load", function () {
+  function sendData( data, url ) {
+    console.log( 'Sending data' );
 
-    function sendData(formElement, url) {
-      const XHR = new XMLHttpRequest();
+    const XHR = new XMLHttpRequest();
 
-      // Bind the FormData object and the form element
-      const FD = new FormData( formElement );
+    let urlEncodedData = "",
+        urlEncodedDataPairs = [],
+        name;
 
-      // Define what happens on successful data submission
-      XHR.addEventListener( "load", function(event) {
-        //alert( event.target.responsetext );
-      } );
-
-      // Define what happens in case of error
-      XHR.addEventListener( "error", function( event ) {
-        alert( 'Oops! Something went wrong.' );
-      } );
-
-      // Set up our request
-      XHR.open( "POST", url );
-
-      // The data sent is what the user provided in the form
-      XHR.send( FD );
-
+    // Turn the data object into an array of URL-encoded key/value pairs.
+    for( name in data ) {
+      urlEncodedDataPairs.push( encodeURIComponent( name ) + '=' + encodeURIComponent( data[name] ) );
     }
 
-    // Access the form elements
-    const formBrightness = document.getElementById( "formBrightness" );
-    const formEffect = document.getElementById( "formEffect" );
-    const formColor = document.getElementById( "formColor" );
+    // Combine the pairs into a single string and replace all %-encoded spaces to
+    // the '+' character; matches the behavior of browser form submissions.
+    urlEncodedData = urlEncodedDataPairs.join( '&' ).replace( /%20/g, '+' );
 
-
-    // Takeover submit events
-    formBrightness.addEventListener( "submit", function ( event ) {
-      event.preventDefault();
-
-      sendData(formBrightness, "/brightness");
+    // Define what happens on successful data submission
+    XHR.addEventListener( 'load', function(event) {
+      //alert( 'Yeah! Data sent and response loaded.' );
     } );
 
-    formEffect.addEventListener( "submit", function ( event ) {
-      event.preventDefault();
-
-      sendData(formEffect, "/effect");
+    // Define what happens in case of error
+    XHR.addEventListener( 'error', function(event) {
+      //alert( 'Oops! Something went wrong.' );
     } );
 
-    formColor.addEventListener( "submit", function ( event ) {
-      event.preventDefault();
+    // Set up our request
+    XHR.open( 'POST', url );
 
-      sendData(formColor, "/color");
+    // Add the required HTTP header for form data POST requests
+    XHR.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded' );
 
-    } );
+    // Finally, send our data.
+    XHR.send( urlEncodedData );
+  }
 
-} );
+   window.addEventListener( "load", function () {
+
+        // Access the form elements
+        const formBrightness = document.getElementById( "form_brightness" );
+        const inputBrightnessPercent = document.getElementById( "input_brightness_percent" );
+
+        const formEffect = document.getElementById( "form_effect" );
+        const inputEffectId = document.getElementById( "input_effect_id" );
+
+        const formColor = document.getElementById( "form_color" );
+        const inputColor = document.getElementById( "input_color" );
+
+        // Takeover submit events
+        formBrightness.addEventListener( "submit", function ( event ) {
+        event.preventDefault();
+
+        sendData({ 'brightness_percent': inputBrightnessPercent.value }, "/brightness");
+
+        } );
+
+        formEffect.addEventListener( "submit", function ( event ) {
+        event.preventDefault();
+
+        sendData( { 'effect_id': inputEffectId.value }, "/effect");
+
+        } );
+
+        formColor.addEventListener( "submit", function ( event ) {
+        event.preventDefault();
+
+        sendData({ 'color': inputColor.value }, "/color");
+
+        } );
+    });
 
   </script>
 
@@ -65,45 +91,57 @@
 
 <body>
 
-<br/>
+<div class="header">
+  <span class="title"><h1>LED Oxide</h1></span>
+  <span class="description"><p>Welcome to LED Oxide, You are controlling an RGB LED Lightstrip somewhere</p></span>
+</div>
 
-<h1>Old School Form Submit</h1>
-<p>Works but sends you to a new page with response.</P>
+<!-- Duplicate, invisible header, hack to space the rest of the content under the floating header.
+<div class="header-spacer">
+    <span class="title"><h1>LED Oxide</h1></span>
+    <span class="description"><p>Welcome to LED Oxide, You are controlling an RGB LED Lightstrip somewhere</p></span>
+</div>
+-->
 
-<form id="formBrightness_nojs" action="/brightness" method="post">
-  <input name="brightness_percent" type="number" min=0 max=100>
-  <button type="submit">Set Brightness</button>
-</form>
+<!-- Card container -->
+<div class="card-feed">
 
-<form id="formEffect_nojs" action="/effect" method="post">
-  <input name="effect_id" type="number" min=0 max=10>
-  <button>Set Effect</button>
-</form>
+    <!-- First and only card for now -->
+    <div class="card">
 
-<form id="formColor_nojs" action="/color" method="post">
-  <input name="color" type="color">
-  <button>Set Color</button>
-</form>
+      <form id="form_brightness">
+        <input id="input_brightness_percent" name="brightness_percent" type="number" min=0 max=100></input>
+        <input type="submit" value="Set Brightness">
+      </form>
 
-<br/><hr/><br/><br/>
+      <form id="form_effect">
+          <select id="input_effect_id">
+              <optgroup label="Choose an effect">
+                  <option value="0">Off</option>
+                  <option value="1">Solid Color</option>
+                  <option value="2">Rainbow Cycle</option>
+                  <option value="3">Comet</option>
+                  <option value="4">Comet Rainbow</option>
+                  <option value="5">Fire</option>
+                  <option value="6">Fire with Color</option>
+                  <option value="7">Solid Color Pulse</option>
+                  <option value="8">Bouncing Balls</option>
+                  <option value="9">Twinkle</option>
+              </optgroup>
+          </select>
+          <input type="submit" value="Set Effect">
+      </form>
 
-<h1>JavaScript Submit Forms</h1>
-<p>Do not function yet as our rust implementation does not parse "multipart/form-data"</p>
+      <form id="form_color">
+        <input  id="input_color" name="color" type="color"></input>
+        <input type="submit" value="Set Color">
+      </form>
 
-<form id="formBrightness">
-  <input name="brightness_percent" type="number" min=0 max=100>
-  <button>Set Brightness</button>
-</form>
+    <!-- End Card -->
+    </div>
 
-<form id="formEffect">
-  <input name="effect_id" type="number" min=0 max=10>
-  <button>Set Effect</button>
-</form>
-
-<form id="formColor">
-  <input name="color" type="color">
-  <button>Set Color</button>
-</form>
+<!-- End Card Feed -->
+</div>
 
 </body>
 </html>
