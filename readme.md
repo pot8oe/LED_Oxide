@@ -27,28 +27,28 @@ Build using the standard rust tools.
 
 1. Clone repository
 
-  `git clone git@github-pot8oe.com:pot8oe/led_oxide.git && cd led_oxide`
+    `git clone git@github-pot8oe.com:pot8oe/led_oxide.git && cd led_oxide`
 
 1. LED Oxide uses Rocket which requires rust nightly.
 
-  `rustup default nightly`
+    `rustup default nightly`
 
 1. Make sure rust is at the latest
 
-  `rustup update`
+    `rustup update`
 
 1. Install libdev development package.
 
-  `sudo apt update && sudo apt upgrade -y sudo apt install -y libudev-dev`
+    `sudo apt update && sudo apt upgrade -y sudo apt install -y libudev-dev`
 
 1. Run LED Oxide
 
-  `cargo run`
+    `cargo run`
 
 1. If you want to develop with led_oxide and run unit tests. Some tests require
 hardware running LedStripController firmware accessible.
 
-  `cargo test`
+    `cargo test`
 
 
 ## Build - Docker Image
@@ -56,17 +56,20 @@ Build a docker image.
 
 1. Clone repository
 
-  `git clone git@github-pot8oe.com:pot8oe/led_oxide.git && cd led_oxide`
+    `git clone git@github-pot8oe.com:pot8oe/led_oxide.git && cd led_oxide`
 
 1. Change into source directory
 
-  `cd led_oxide`
+    `cd led_oxide`
+
+1. Build docker Image
+    `docker build -t led_oxide:0.1 .`
 
 
 ## Run with Docker
 Obtain the docker image and use the following command to run container.
 
-  `docker run -p 127.0.0.1:8000:8000/tcp --device=/dev/ttyACM0 -t led_oxide_wip_0.1 & `
+    `docker run -p 127.0.0.1:8000:8000/tcp --device=/dev/ttyACM0 -t led_oxide_wip_0.1 & `
 
 * LED Oxide default port is 8000 so we have to export the container port to the
 host with:
@@ -74,6 +77,3 @@ host with:
 
 * Container needs access to the LedStripController device's serial port.
     `--device=/dev/ttyACM0`
-
-
-    
