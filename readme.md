@@ -27,7 +27,7 @@ Build using the standard rust tools.
 
 1. Clone repository
 
-    `git clone git@github-pot8oe.com:pot8oe/led_oxide.git && cd led_oxide`
+    `git clone --recurse-submodules git@github-pot8oe.com:pot8oe/led_oxide.git && cd led_oxide`
 
 1. LED Oxide uses Rocket which requires rust nightly.
 
@@ -45,10 +45,15 @@ Build using the standard rust tools.
 
     `cargo run`
 
-1. If you want to develop with led_oxide and run unit tests. Some tests require
-hardware running LedStripController firmware accessible.
+1. If you want to develop and run led_oxide unit tests.
 
     `cargo test`
+    
+1. Some tests require hardware running LedStripController firmware to be
+accessible. Make sure an LedStripController based device is plugged in 
+and run.
+
+    `cargo test -- --ignored`
 
 
 ## Build - Docker Image

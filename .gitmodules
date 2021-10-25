@@ -1,0 +1,3 @@
+[submodule "lib/teensy_loader_cli"]
+	path = lib/teensy_loader_cli
+	url = git@github.com:pot8oe/teensy_loader_cli.git

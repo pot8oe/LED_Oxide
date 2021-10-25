@@ -250,6 +250,7 @@ mod test {
     const HW_AVAILABLE: bool = true;
 
     #[test]
+    #[ignore]
     fn send_command_wait_for_response_test() {
         match controller::auto_detect_ledsc() {
             Ok(port_info) => {

@@ -62,6 +62,9 @@
         const formColor = document.getElementById( "form_color" );
         const inputColor = document.getElementById( "input_color" );
 
+        const formFireColorPallet = document.getElementById( "form_fire_color_pallet" );
+        const inputPalletId = document.getElementById( "input_pallet_id" );
+
         // Takeover submit events
         formBrightness.addEventListener( "submit", function ( event ) {
         event.preventDefault();
@@ -81,6 +84,13 @@
         event.preventDefault();
 
         sendData({ 'color': inputColor.value }, "/color");
+
+        } );
+
+        formFireColorPallet.addEventListener( "submit", function ( event ) {
+        event.preventDefault();
+
+        sendData( { 'pallet_id': inputPalletId.value }, "/firepallet");
 
         } );
     });
@@ -135,6 +145,22 @@
       <form id="form_color">
         <input  id="input_color" name="color" type="color"></input>
         <input type="submit" value="Set Color">
+      </form>
+
+      <form id="form_fire_color_pallet">
+          <select id="input_pallet_id">
+              <optgroup label="Choose a fire color pallet">
+                  <option value="0">Heat</option>
+                  <option value="1">Party</option>
+                  <option value="2">Rainbow</option>
+                  <option value="3">Rainbow Stripe</option>
+                  <option value="4">Forest</option>
+                  <option value="5">Ocean</option>
+                  <option value="6">Lava</option>
+                  <option value="7">Cloud</option>
+              </optgroup>
+          </select>
+          <input type="submit" value="Set Fire Color Pallet">
       </form>
 
     <!-- End Card -->

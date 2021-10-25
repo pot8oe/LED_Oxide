@@ -1,26 +1,25 @@
 /*
-    led_oxide is an http API interface to the LedStripController Firmware.
+   led_oxide is an http API interface to the LedStripController Firmware.
 
-    Copyright (C) 2021  Thomas G. Kenny Jr
+   Copyright (C) 2021  Thomas G. Kenny Jr
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 
+use crate::led_strip_controller::color;
 use crc16::*;
 use std::str::Chars;
-use crate::led_strip_controller::color;
-
 
 /**
 * Input Packet structure
@@ -74,7 +73,6 @@ const MAX_PROTO_PARAM_COUNT: i16 = 4;
 /// Max number of characters for any one parameter assuming there is only one param
 const MAX_PROTO_PARAM_LEN: i16 = 50;
 
-
 // --------------------------------------
 // - Known Protocol Versions
 // --------------------------------------
@@ -87,7 +85,6 @@ const FWV_LEDSC_TEENSY: &str = "LEDSC_TEENSY_";
 
 /// LEDSC_Teensy_001
 const FWV_LEDSC_TEENSY_001: &str = "LEDSC_TEENSY_001";
-
 
 // --------------------------------------
 // - Commands
@@ -113,6 +110,9 @@ const CMD_SET_COLOR: &str = "CSC";
 
 /// Command set brightness
 const CMD_SET_BRIGHTNESS: &str = "CSB";
+
+/// Command set fire pallet
+const CMD_SET_FIRE_PALLET: &str = "CSFP";
 
 // --------------------------------------
 // - Error Codes
@@ -198,6 +198,17 @@ pub enum Effect {
     MaxEffect,
 }
 
+pub enum FireColorPallet {
+    Heat,
+    Party,
+    Rainbow,
+    RainbowStripe,
+    Forest,
+    Ocean,
+    Lava,
+    Cloud,
+}
+
 ///
 /// Represents possible LED Strip Controller commands
 ///
@@ -210,6 +221,7 @@ pub enum Command {
     SetEffect(Effect),
     SetColor(color::Color24),
     SetBrightness(u8),
+    SetFireColorPallet(FireColorPallet),
 }
 
 ///
@@ -239,7 +251,6 @@ impl KnownProtocolVersions {
 /// Gets the known protocol version for the given String.
 ///
 pub fn get_known_protocol_version_from_str(proto_str: &str) -> Option<KnownProtocolVersions> {
-
     let proto_str_upper = proto_str.to_uppercase();
 
     return match proto_str_upper.as_str() {
@@ -252,7 +263,7 @@ pub fn get_known_protocol_version_from_str(proto_str: &str) -> Option<KnownProto
 
             Some(KnownProtocolVersions::Unknown)
         }
-    }
+    };
 }
 
 ///
@@ -262,20 +273,18 @@ pub fn get_known_protocol_version_from_str(proto_str: &str) -> Option<KnownProto
 /// is returned.
 ///
 pub fn get_protocol_version_impl_from_str(protocol_str: &str) -> Box<dyn ProtocolVersion> {
-
     match get_known_protocol_version_from_str(&protocol_str) {
-        Some(KnownProtocolVersions::Unknown) => Box::new(LedscTeensy001 { }),
-        Some(KnownProtocolVersions::LedscTeensy001) => Box::new(LedscTeensy001 { }),
-        Some(KnownProtocolVersions::LedscTeensyNewer) => Box::new(LedscTeensy001 { }),
-        None => Box::new(LedscTeensy001 { })
+        Some(KnownProtocolVersions::Unknown) => Box::new(LedscTeensy001 {}),
+        Some(KnownProtocolVersions::LedscTeensy001) => Box::new(LedscTeensy001 {}),
+        Some(KnownProtocolVersions::LedscTeensyNewer) => Box::new(LedscTeensy001 {}),
+        None => Box::new(LedscTeensy001 {}),
     }
-
 }
 
 ///
 /// Represents a response package option returned by parsing a response packet.
 ///
-pub  enum ResponsePacketOption {
+pub enum ResponsePacketOption {
     /// Value when a reponse packet is parsed correctly and represents a success from firmware.
     Success(ResponsePacket),
     /// Value when a reponse pacakge is parsed correcly and represents a failure code from firmware.
@@ -300,7 +309,6 @@ pub struct ResponsePacket {
 /// should implement this trait. The base implmentation of functions support TKJLED_Teensy_001.
 ///
 pub trait ProtocolVersion {
-
     fn get_version_code(&self) -> &str;
 
     ///
@@ -324,16 +332,25 @@ pub trait ProtocolVersion {
     fn get_effect_from_cmd_value(&self, effect_id: &u8) -> Effect;
 
     ///
+    /// Returns the color pallet int value used when creating a command string to be sent to the firmware.
+    ///
+    fn get_fire_color_pallet_value(&self, pallet: &FireColorPallet) -> u8;
+
+    ///
+    /// Returns the fire color pallet represented by the given pallet id.
+    ///
+    fn get_fire_color_pallet_from_cmd_value(&self, pallet_id: &u8) -> FireColorPallet;
+
+    ///
     /// Returns the command string to be sent for the given command packet.
     ///
     fn create_cmd_string(&self, command: Command) -> String {
-
         // Start TX
         let mut cmd_str: String = String::from(PROTO_STX);
 
         // Command & Parameters
         match &command {
-            Command::None => { },
+            Command::None => {}
             Command::PrintVersion => cmd_str.push_str(CMD_PRINT_VERSION),
             Command::FullReset => cmd_str.push_str(CMD_FULL_RESET),
             Command::EnterBootloader => cmd_str.push_str(CMD_ENTER_BOOTLOADER),
@@ -361,6 +378,13 @@ pub trait ProtocolVersion {
                 cmd_str.push(PROTO_PSC);
                 cmd_str.push_str(format!("{:X}", brightness).as_str());
             }
+            Command::SetFireColorPallet(fire_color) => {
+                cmd_str.push_str(CMD_SET_FIRE_PALLET);
+                cmd_str.push(PROTO_PSC);
+                cmd_str.push_str(
+                    format!("{:X}", self.get_fire_color_pallet_value(&fire_color)).as_str(),
+                );
+            }
         };
 
         // End TX
@@ -383,7 +407,6 @@ pub trait ProtocolVersion {
     /// Parses the input string and returns a ResponsePacket
     ///
     fn parse_response_sting(&self, response_str: String) -> ResponsePacketOption {
-
         // init character iterator
         let mut response_chars: Chars<'_> = response_str.trim().chars();
 
@@ -458,8 +481,7 @@ pub trait ProtocolVersion {
         let response_packet = ResponsePacket {
             command: cmd,
             parameters: params_in,
-            crc16_in: match u16::from_str_radix(crc16_in_str.as_str(), 16)
-            {
+            crc16_in: match u16::from_str_radix(crc16_in_str.as_str(), 16) {
                 Result::Ok(value) => value,
                 Result::Err(..) => 0x00,
             },
@@ -476,20 +498,17 @@ pub trait ProtocolVersion {
 
         return ResponsePacketOption::FailedRemote(response_packet);
     }
-
 }
-
 
 ///
 /// Type object for TKJRLED_TEENSY_001 firmware version
 ///
-pub struct LedscTeensy001 { }
+pub struct LedscTeensy001 {}
 
 ///
 /// ProtocolVersion implementation for TKJRLED_TEENSY_001 firmware version.
 ///
 impl ProtocolVersion for LedscTeensy001 {
-
     fn get_version_code(&self) -> &str {
         FWV_LEDSC_TEENSY_001
     }
@@ -507,6 +526,7 @@ impl ProtocolVersion for LedscTeensy001 {
             Command::SetEffect(effect) => self.is_effect_supported(effect),
             Command::SetColor(..) => true,
             Command::SetBrightness(..) => true,
+            Command::SetFireColorPallet(..) => true,
             // Will need this if future commands are implemented newer firmware
             // _ => false
         }
@@ -572,10 +592,40 @@ impl ProtocolVersion for LedscTeensy001 {
             _ => Effect::Off,
         }
     }
+
+    ///
+    /// Returns the color pallet int value used when creating a command string to be sent to the firmware.
+    ///
+    fn get_fire_color_pallet_value(&self, pallet: &FireColorPallet) -> u8 {
+        match &pallet {
+            FireColorPallet::Heat => 0x00,
+            FireColorPallet::Party => 0x01,
+            FireColorPallet::Rainbow => 0x02,
+            FireColorPallet::RainbowStripe => 0x03,
+            FireColorPallet::Forest => 0x04,
+            FireColorPallet::Ocean => 0x05,
+            FireColorPallet::Lava => 0x06,
+            FireColorPallet::Cloud => 0x07,
+        }
+    }
+
+    ///
+    /// Returns the fire color pallet represented by the given pallet id.
+    ///
+    fn get_fire_color_pallet_from_cmd_value(&self, pallet_id: &u8) -> FireColorPallet {
+        match &pallet_id {
+            0x00 => FireColorPallet::Heat,
+            0x01 => FireColorPallet::Party,
+            0x02 => FireColorPallet::Rainbow,
+            0x03 => FireColorPallet::RainbowStripe,
+            0x04 => FireColorPallet::Forest,
+            0x05 => FireColorPallet::Ocean,
+            0x06 => FireColorPallet::Lava,
+            0x07 => FireColorPallet::Cloud,
+            _ => FireColorPallet::Heat,
+        }
+    }
 }
-
-
-
 
 /// -----------------
 /// Unit Tests
@@ -584,18 +634,20 @@ impl ProtocolVersion for LedscTeensy001 {
 mod test {
     use crate::led_strip_controller::color::Color24;
     use crate::led_strip_controller::protocol;
+    use crate::led_strip_controller::protocol::ProtocolVersion;
     use crate::led_strip_controller::protocol::{
         Effect, CMD_ENTER_BOOTLOADER, CMD_FULL_RESET, CMD_PRINT_VERSION, CMD_SET_BRIGHTNESS,
         CMD_SET_COLOR, CMD_SET_EFFECT, PROTO_CR, PROTO_ETX, PROTO_NL, PROTO_PSC, PROTO_STX,
     };
-    use crate::led_strip_controller::protocol::ProtocolVersion;
 
     #[test]
     fn get_effect_cmd_value_test() {
+        let protocol_version = protocol::LedscTeensy001 {};
 
-        let protocol_version = protocol::LedscTeensy001 { };
-
-        assert_eq!(protocol_version.get_effect_cmd_value(&protocol::Effect::Off), 0x00);
+        assert_eq!(
+            protocol_version.get_effect_cmd_value(&protocol::Effect::Off),
+            0x00
+        );
         assert_eq!(
             protocol_version.get_effect_cmd_value(&protocol::Effect::SolidColor),
             0x01
@@ -639,9 +691,46 @@ mod test {
     }
 
     #[test]
-    fn packet_command_get_cmd_string_test() {
+    fn get_fire_color_pallet_value_test() {
+        let protocol_version = protocol::LedscTeensy001 {};
 
-        let protocol_version = protocol::LedscTeensy001{ };
+        assert_eq!(
+            protocol_version.get_fire_color_pallet_value(&protocol::FireColorPallet::Heat),
+            0x00
+        );
+        assert_eq!(
+            protocol_version.get_fire_color_pallet_value(&protocol::FireColorPallet::Party),
+            0x01
+        );
+        assert_eq!(
+            protocol_version.get_fire_color_pallet_value(&protocol::FireColorPallet::Rainbow),
+            0x02
+        );
+        assert_eq!(
+            protocol_version.get_fire_color_pallet_value(&protocol::FireColorPallet::RainbowStripe),
+            0x03
+        );
+        assert_eq!(
+            protocol_version.get_fire_color_pallet_value(&protocol::FireColorPallet::Forest),
+            0x04
+        );
+        assert_eq!(
+            protocol_version.get_fire_color_pallet_value(&protocol::FireColorPallet::Ocean),
+            0x05
+        );
+        assert_eq!(
+            protocol_version.get_fire_color_pallet_value(&protocol::FireColorPallet::Lava),
+            0x06
+        );
+        assert_eq!(
+            protocol_version.get_fire_color_pallet_value(&protocol::FireColorPallet::Cloud),
+            0x07
+        );
+    }
+
+    #[test]
+    fn packet_command_get_cmd_string_test() {
+        let protocol_version = protocol::LedscTeensy001 {};
 
         let test_str: String = format!(
             "{}{}{}{}{}{}",
@@ -699,22 +788,23 @@ mod test {
         );
 
         assert_eq!(
-            protocol_version.create_cmd_string(protocol::Command::SetColor(Color24::from_u32(0x004F2D86))),
+            protocol_version
+                .create_cmd_string(protocol::Command::SetColor(Color24::from_u32(0x004F2D86))),
             test_str
         );
     }
 
     #[test]
     fn parse_response_sting_test() {
-
-        let protocol_version = protocol::LedscTeensy001 { };
+        let protocol_version = protocol::LedscTeensy001 {};
 
         //
         // Set Effect OK response
         //
         let test_string: String = String::from("[CSE:0]A0D8");
 
-        let response: protocol::ResponsePacketOption = protocol_version.parse_response_sting(test_string);
+        let response: protocol::ResponsePacketOption =
+            protocol_version.parse_response_sting(test_string);
 
         match response {
             protocol::ResponsePacketOption::Success(pkt) => {
@@ -722,18 +812,24 @@ mod test {
                 assert_eq!(pkt.parameters[0], "0");
                 assert_eq!(pkt.crc16_in, 0xA0D8);
                 assert_eq!(pkt.crc16_calc, 0xA0D8);
-            },
-            protocol::ResponsePacketOption::FailedRemote(..) => assert!(false, "Parsing '[CSE:0]A0D8' should not return failed remote."),
-            protocol::ResponsePacketOption::FailedLocal(..) => assert!(false, "Parsing '[CSE:0]A0D8' should not return failed local."),
+            }
+            protocol::ResponsePacketOption::FailedRemote(..) => assert!(
+                false,
+                "Parsing '[CSE:0]A0D8' should not return failed remote."
+            ),
+            protocol::ResponsePacketOption::FailedLocal(..) => assert!(
+                false,
+                "Parsing '[CSE:0]A0D8' should not return failed local."
+            ),
         }
-
 
         //
         // Set Brightness OK response
         //
         let test_string: String = String::from("[CSB:0]F1F5");
 
-        let response: protocol::ResponsePacketOption = protocol_version.parse_response_sting(test_string);
+        let response: protocol::ResponsePacketOption =
+            protocol_version.parse_response_sting(test_string);
 
         match response {
             protocol::ResponsePacketOption::Success(pkt) => {
@@ -741,9 +837,15 @@ mod test {
                 assert_eq!(pkt.parameters[0], "0");
                 assert_eq!(pkt.crc16_in, 0xF1F5);
                 assert_eq!(pkt.crc16_calc, 0xF1F5);
-            },
-            protocol::ResponsePacketOption::FailedRemote(..) => assert!(false, "Parsing '[CSB:0]F1F5' should not return failed remote."),
-            protocol::ResponsePacketOption::FailedLocal(..) => assert!(false, "Parsing '[CSB:0]F1F5' should not return failed lcoal."),
+            }
+            protocol::ResponsePacketOption::FailedRemote(..) => assert!(
+                false,
+                "Parsing '[CSB:0]F1F5' should not return failed remote."
+            ),
+            protocol::ResponsePacketOption::FailedLocal(..) => assert!(
+                false,
+                "Parsing '[CSB:0]F1F5' should not return failed lcoal."
+            ),
         }
 
         //
@@ -751,49 +853,66 @@ mod test {
         //
         let test_string: String = String::from("[CS:-104]599D");
 
-        let response: protocol::ResponsePacketOption = protocol_version.parse_response_sting(test_string);
+        let response: protocol::ResponsePacketOption =
+            protocol_version.parse_response_sting(test_string);
 
         match response {
-            protocol::ResponsePacketOption::Success(_pkt) => assert!(false, "Parsing '[CS:-104]599D' should not return success."),
+            protocol::ResponsePacketOption::Success(_pkt) => {
+                assert!(false, "Parsing '[CS:-104]599D' should not return success.")
+            }
             protocol::ResponsePacketOption::FailedRemote(pkt) => {
                 assert_eq!(pkt.command, "CS");
                 assert_eq!(pkt.parameters[0], "-104");
                 assert_eq!(pkt.crc16_in, 0x599D);
                 assert_eq!(pkt.crc16_calc, 0x599D);
-            },
-            protocol::ResponsePacketOption::FailedLocal(..) => assert!(false, "Parsing '[CS:-104]599D' should not return failed local."),
-
+            }
+            protocol::ResponsePacketOption::FailedLocal(..) => assert!(
+                false,
+                "Parsing '[CS:-104]599D' should not return failed local."
+            ),
         }
-
     }
 
     #[test]
     fn get_known_protocol_version_from_str_test() {
-
         // Checking standard 001 all caps
         match protocol::get_known_protocol_version_from_str("LEDSC_TEENSY_001") {
-            Some(protocol::KnownProtocolVersions::LedscTeensy001) => assert!(true, "This is correct"),
-            _ => assert!(false, "Failed Checking LEDSC_TEENSY_001 to LedscTeensy001 value")
+            Some(protocol::KnownProtocolVersions::LedscTeensy001) => {
+                assert!(true, "This is correct")
+            }
+            _ => assert!(
+                false,
+                "Failed Checking LEDSC_TEENSY_001 to LedscTeensy001 value"
+            ),
         }
 
         // Checking lower case semi-incorrect formatting but should pass
         match protocol::get_known_protocol_version_from_str("Ledsc_teensy_001") {
-            Some(protocol::KnownProtocolVersions::LedscTeensy001) => assert!(true, "This is correct"),
-            _ => assert!(false, "Failed Checking Ledsc_teensy_001 to LedscTeensy001 value")
+            Some(protocol::KnownProtocolVersions::LedscTeensy001) => {
+                assert!(true, "This is correct")
+            }
+            _ => assert!(
+                false,
+                "Failed Checking Ledsc_teensy_001 to LedscTeensy001 value"
+            ),
         }
 
         // Checking some newer version than we know about
         match protocol::get_known_protocol_version_from_str("LEDSC_TEENSY_256") {
-            Some(protocol::KnownProtocolVersions::LedscTeensyNewer) => assert!(true, "This is correct"),
-            _ => assert!(false, "Failed Checking LEDSC_TEENSY_256 to LedscTeensyNewer value")
+            Some(protocol::KnownProtocolVersions::LedscTeensyNewer) => {
+                assert!(true, "This is correct")
+            }
+            _ => assert!(
+                false,
+                "Failed Checking LEDSC_TEENSY_256 to LedscTeensyNewer value"
+            ),
         }
 
         // Testing garbage input
         match protocol::get_known_protocol_version_from_str("Something") {
             Some(protocol::KnownProtocolVersions::Unknown) => assert!(true, "This is correct"),
-            _ => assert!(false, "Failed Checking garbage input to Unknown value")
+            _ => assert!(false, "Failed Checking garbage input to Unknown value"),
         }
-
     }
 
     //
