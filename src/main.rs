@@ -25,16 +25,45 @@ extern crate rocket;
 use led_oxide::led_strip_controller::color::*;
 use led_oxide::led_strip_controller::controller;
 use led_oxide::led_strip_controller::protocol::*;
+use led_oxide::led_strip_controller::protocol::ResponsePacketOption::{ Success, FailedRemote, FailedLocal };
 use chrono::{DateTime, Utc};
+use serde::Serialize;
 use rocket::request::Form;
 use rocket::Data;
 use rocket::Request;
+use rocket_contrib::json::Json;
 use rocket_contrib::serve::StaticFiles;
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
 
 const MAX_FW_UPLOAD_SIZE: u64 = 524288;
+
+const ERR_STR_FAIL_TO_FIND_HW: &str = "Failed to find LEDSC Hardware";
+
+///
+/// Simple command response data structure. Used as return value for basic commands:
+/// set brightness, effect, color, etc...
+///
+#[derive(Serialize)]
+struct SimpleCmdResponse {
+    success: bool,
+    status_str: String,
+}
+
+///
+/// Used as the response when getting device status.
+/// 
+#[derive(Serialize)]
+struct LedStatusResponse {
+    success: bool,
+    status_str: String,
+    brightness_percent: f32,
+    effect_id: u8,
+    color: String,
+    fire_pallet_id: u8,
+    hw_debug: bool,
+}
 
 ///
 /// Error 404 endpoint
@@ -64,7 +93,10 @@ struct FormDataBrightness {
 /// Set brightness endpoint
 ///
 #[post("/brightness", data = "<brightness_data>")]
-fn set_brightness(brightness_data: Form<FormDataBrightness>) -> rocket::http::Status {
+fn set_brightness(brightness_data: Form<FormDataBrightness>) -> Json<SimpleCmdResponse> {
+
+    let status: String;
+
     match controller::auto_detect_ledsc() {
         Ok(port_info) => {
             let brightness: u8 = ((brightness_data.brightness_percent / 100.00) * 255.00) as u8;
@@ -74,18 +106,21 @@ fn set_brightness(brightness_data: Form<FormDataBrightness>) -> rocket::http::St
 
             match controller::send_command_wait_for_response(&port_info, cmd) {
                 Ok(_rsp_pkt) => {
-                    println!("Set Brightness");
-                    return rocket::http::Status::Ok;
+                    status = String::from("Set Brightness");
+                    println!("{}", status);
+                    return Json(SimpleCmdResponse { success: true, status_str: status});
                 }
                 Err(rsp_pkt) => {
-                    println!("Failed to set brightness {:?}", rsp_pkt);
-                    return rocket::http::Status::InternalServerError;
+                    status = String::from(format!("Failed to set brightness - {:?}", rsp_pkt));
+                    println!("{}", status);
+                    return Json(SimpleCmdResponse { success: false, status_str: status});
                 }
             }
         }
         Err(_e) => {
-            println!("Failed to find LEDSC");
-            return rocket::http::Status::InternalServerError;
+            status = String::from(ERR_STR_FAIL_TO_FIND_HW);
+            println!("{}", status);
+            return Json(SimpleCmdResponse { success: false, status_str: status});
         }
     };
 }
@@ -102,7 +137,10 @@ struct FormDataEffect {
 /// Set effect endpoint
 ///
 #[post("/effect", data = "<effect_data>")]
-fn set_effect(effect_data: Form<FormDataEffect>) -> rocket::http::Status {
+fn set_effect(effect_data: Form<FormDataEffect>) -> Json<SimpleCmdResponse> {
+
+    let status: String;
+
     match controller::auto_detect_ledsc() {
         Ok(port_info) => {
             let protocol_instance = LedscTeensy001 {};
@@ -112,18 +150,21 @@ fn set_effect(effect_data: Form<FormDataEffect>) -> rocket::http::Status {
 
             match controller::send_command_wait_for_response(&port_info, cmd) {
                 Ok(_rsp_pkt) => {
-                    println!("Set Effect - Solid color");
-                    return rocket::http::Status::Ok;
+                    status = String::from("Set Effect");
+                    println!("{}", status);
+                    return Json(SimpleCmdResponse { success: true, status_str: status});
                 }
                 Err(rsp_pkt) => {
-                    println!("Failed to set effect {:?}", rsp_pkt);
-                    return rocket::http::Status::InternalServerError;
+                    status = String::from(format!("Failed to set effect - {:?}", rsp_pkt));
+                    println!("{}", status);
+                    return Json(SimpleCmdResponse { success: false, status_str: status});
                 }
             }
         }
         Err(_e) => {
-            println!("Failed to find LEDSC");
-            return rocket::http::Status::InternalServerError;
+            status = String::from(ERR_STR_FAIL_TO_FIND_HW);
+            println!("{}", status);
+            return Json(SimpleCmdResponse { success: false, status_str: status});
         }
     };
 }
@@ -140,7 +181,10 @@ struct FormDataColor {
 /// Set color endpoint
 ///
 #[post("/color", data = "<color_data>")]
-fn set_color(color_data: Form<FormDataColor>) -> String {
+fn set_color(color_data: Form<FormDataColor>) -> Json<SimpleCmdResponse> {
+
+    let status: String;
+    
     match controller::auto_detect_ledsc() {
         Ok(port_info) => {
             let color_result = u32::from_str_radix(color_data.color.as_str().trim_matches('#'), 16);
@@ -153,30 +197,28 @@ fn set_color(color_data: Form<FormDataColor>) -> String {
 
                     match controller::send_command_wait_for_response(&port_info, cmd) {
                         Ok(_rsp_pkt) => {
-                            println!("Set Color");
-                            return String::from(rocket::http::Status::Ok.reason);
+                            status = String::from("Set Color");
+                            println!("{}", status);
+                            return Json(SimpleCmdResponse { success: true, status_str: status});
                         }
                         Err(rsp_pkt) => {
-                            println!("Failed to set color {:?}", rsp_pkt);
-                            //return rocket::http::Status::InternalServerError;
-                            return String::from("Failed to set color");
+                            status = String::from(format!("Failed to set color - {:?}", rsp_pkt));
+                            println!("{}", status);
+                            return Json(SimpleCmdResponse { success: false, status_str: status});
                         }
                     }
                 }
                 Err(e) => {
-                    println!("Failed to parse color parameter.");
-                    //return rocket::http::Status::InternalServerError.reason;
-                    return format!(
-                        "Failed to parse color parameter: {} - {}",
-                        color_data.color, e
-                    );
+                    status = String::from(format!("Failed to parse color parameter: {} - {}", color_data.color, e));
+                    println!("{}", status);
+                    return Json(SimpleCmdResponse { success: false, status_str: status});
                 }
             }
         }
         Err(_e) => {
-            println!("Failed to find LEDSC");
-            //return rocket::http::Status::InternalServerError;
-            return String::from("Failed to find LEDSC Hardware");
+            status = String::from(ERR_STR_FAIL_TO_FIND_HW);
+            println!("{}", status);
+            return Json(SimpleCmdResponse { success: false, status_str: status});
         }
     };
 }
@@ -193,7 +235,10 @@ struct FormDataFirePallet {
 /// Set the Firepalle endpoint
 ///
 #[post("/firepallet", data = "<fire_pallet_data>")]
-fn set_fire_color_pallet(fire_pallet_data: Form<FormDataFirePallet>) -> rocket::http::Status {
+fn set_fire_color_pallet(fire_pallet_data: Form<FormDataFirePallet>) -> Json<SimpleCmdResponse> {
+
+    let status: String;
+    
     match controller::auto_detect_ledsc() {
         Ok(port_info) => {
             let protocol_instance = LedscTeensy001 {};
@@ -202,19 +247,154 @@ fn set_fire_color_pallet(fire_pallet_data: Form<FormDataFirePallet>) -> rocket::
             ));
 
             match controller::send_command_wait_for_response(&port_info, cmd) {
-                Ok(rsp_pkt) => {
-                    println!("Set Effect {:?}", rsp_pkt);
-                    return rocket::http::Status::Ok;
+                Ok(_rsp_pkt) => {
+                    status = String::from("Set Color Fire Pallet");
+                    println!("{}", status);
+                    return Json(SimpleCmdResponse { success: true, status_str: status});
                 }
                 Err(rsp_pkt) => {
-                    println!("Failed to set effect {:?}", rsp_pkt);
-                    return rocket::http::Status::InternalServerError;
+                    status = String::from(format!("Failed to set color fire pallet - {:?}", rsp_pkt));
+                    println!("{}", status);
+                    return Json(SimpleCmdResponse { success: false, status_str: status});
                 }
             }
         }
         Err(_e) => {
-            println!("Failed to find LEDSC");
-            return rocket::http::Status::InternalServerError;
+            status = String::from(ERR_STR_FAIL_TO_FIND_HW);
+            println!("{}", status);
+            return Json(SimpleCmdResponse { success: false, status_str: status});
+        }
+    };
+}
+
+///
+/// Gets the device status & state
+///
+#[get("/status")]
+fn get_device_status() -> Json<LedStatusResponse> {
+
+    let status: String;
+
+    match controller::auto_detect_ledsc() {
+        Ok(port_info) => {
+            //let brightness: u8 = ((brightness_data.brightness_percent / 100.00) * 255.00) as u8;
+
+            let protocol_instance = LedscTeensy001 {};
+            let cmd = protocol_instance.create_cmd_string(Command::GetStatus);
+
+            match controller::send_command_wait_for_response(&port_info, cmd) {
+                Ok(rsp_pkt) => {
+                
+                    match protocol_instance.parse_response_sting(rsp_pkt) {
+                        Success(pkt) => {
+                        
+                        let status_packed: &String = &pkt.parameters[1];
+                        let split = status_packed.split('|');
+                        let mut led_status = LedStatusResponse {
+                            success: true,
+                            status_str: String::from(status_packed),
+                            brightness_percent: 0.0,
+                            effect_id: 0,
+                            color: String::from("#000000"),
+                            fire_pallet_id: 0,
+                            hw_debug: false,
+                        };
+                        
+                        let mut count = 0;
+                        
+                        for val in split {
+                        
+                            if count == 0 {
+                                // Debug enabled
+                                led_status.hw_debug = match u8::from_str_radix(val, 16) {
+                                    Ok(dbg) => dbg != 0,
+                                    Err(_) => false,
+                                };
+                            } else if count == 1 {
+                                // Active Effect ID
+                                led_status.effect_id = match u8::from_str_radix(val, 16) {
+                                    Ok(id) => id,
+                                    Err(_) => 0,
+                                };
+                            } else if count == 2 {
+                                // Brightness percent
+                                led_status.brightness_percent = match u8::from_str_radix(val, 16) {
+                                    Ok(b) => b as f32 / 255.0,
+                                    Err(_) => 0.0,
+                                };
+                            } else if count == 3 {
+                                // Color RGB
+                                led_status.color = String::from(val);
+                            } else if count == 4 {
+                                // Fire Color Pallet ID
+                                led_status.fire_pallet_id = match u8::from_str_radix(val, 16) {
+                                    Ok(id) => id,
+                                    Err(_) => 0,
+                                };
+                            }
+                            
+                            count+=1;
+                        }
+                        
+                        status = String::from("Status Read");
+                            println!("{}", status);
+                            return Json(led_status);
+                        }
+                        FailedRemote(pkt) => {
+                        status = String::from(format!("Get Status hardware reported error - {:?}", pkt));
+                            println!("{}", status);
+                            return Json(LedStatusResponse {
+                                success: false,
+                                status_str: status,
+                                brightness_percent: 0.0,
+                                effect_id: 0,
+                                color: String::from("#000000"),
+                                fire_pallet_id: 0,
+                                hw_debug: false,
+                            });
+                        }
+                        FailedLocal(errcode) => {
+                        status = String::from(format!("Get Status response failed local parsing - {}", errcode));
+                            println!("{}", status);
+                            return Json(LedStatusResponse {
+                                success: false,
+                                status_str: status,
+                                brightness_percent: 0.0,
+                                effect_id: 0,
+                                color: String::from("#000000"),
+                                fire_pallet_id: 0,
+                                hw_debug: false,
+                            });
+                        }
+                    }
+                }
+                Err(rsp_pkt) => {
+                    status = String::from(format!("Failed to get status - {:?}", rsp_pkt));
+                    println!("{}", status);
+                    return Json(LedStatusResponse {
+                        success: false,
+                        status_str: status,
+                        brightness_percent: 0.0,
+                        effect_id: 0,
+                        color: String::from("#000000"),
+                        fire_pallet_id: 0,
+                        hw_debug: false,
+                    });
+                }
+            }
+        }
+        Err(_e) => {
+            status = String::from(ERR_STR_FAIL_TO_FIND_HW);
+            println!("{}", status);
+            return Json(LedStatusResponse {
+                success: false,
+                status_str: status,
+                brightness_percent: 0.0,
+                effect_id: 0,
+                color: String::from("#000000"),
+                fire_pallet_id: 0,
+                hw_debug: false,
+            });
         }
     };
 }
@@ -256,7 +436,8 @@ fn main() {
                 set_effect,
                 set_color,
                 set_fire_color_pallet,
-                upload_fw_update
+                get_device_status,
+                upload_fw_update,
             ],
         )
         .mount(

@@ -114,6 +114,9 @@ const CMD_SET_BRIGHTNESS: &str = "CSB";
 /// Command set fire pallet
 const CMD_SET_FIRE_PALLET: &str = "CSFP";
 
+/// Command get status
+const CMD_GET_STATUS: &str = "CGS";
+
 // --------------------------------------
 // - Error Codes
 // --------------------------------------
@@ -222,6 +225,7 @@ pub enum Command {
     SetColor(color::Color24),
     SetBrightness(u8),
     SetFireColorPallet(FireColorPallet),
+    GetStatus,
 }
 
 ///
@@ -282,7 +286,7 @@ pub fn get_protocol_version_impl_from_str(protocol_str: &str) -> Box<dyn Protoco
 }
 
 ///
-/// Represents a response package option returned by parsing a response packet.
+/// Represents a response packet option returned by parsing a response packet.
 ///
 pub enum ResponsePacketOption {
     /// Value when a reponse packet is parsed correctly and represents a success from firmware.
@@ -298,10 +302,10 @@ pub enum ResponsePacketOption {
 ///
 #[derive(Debug)]
 pub struct ResponsePacket {
-    command: String,
-    parameters: Vec<String>,
-    crc16_in: u16,
-    crc16_calc: u16,
+    pub command: String,
+    pub parameters: Vec<String>,
+    pub crc16_in: u16,
+    pub crc16_calc: u16,
 }
 
 ///
@@ -385,6 +389,7 @@ pub trait ProtocolVersion {
                     format!("{:X}", self.get_fire_color_pallet_value(&fire_color)).as_str(),
                 );
             }
+            Command::GetStatus => cmd_str.push_str(CMD_GET_STATUS),
         };
 
         // End TX
@@ -527,6 +532,7 @@ impl ProtocolVersion for LedscTeensy001 {
             Command::SetColor(..) => true,
             Command::SetBrightness(..) => true,
             Command::SetFireColorPallet(..) => true,
+            Command::GetStatus => true,
             // Will need this if future commands are implemented newer firmware
             // _ => false
         }
